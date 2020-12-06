@@ -1,54 +1,98 @@
 import numpy as np
 
-def svg_elipse_arc(rx,ry,phi,x1,y1,x2,y2):
+def svg_elipse_arc(rx,ry,phi,fa,fs,x2,y2,x1,y1):
+    #Const
     steps=0.03 #resolutino of angle
+    #sign using during center point calculation
+    if(fa==fs):
+        sign1=-1
+    else:
+        sign1=1
+
     #Calcuel cx and cy (center of ellipse)
     x_prim=np.cos(phi)*((x1-x2)/2)+np.sin(phi)*((y1-y2)/2)
     y_prim=-np.sin(phi)*((x1-x2)/2)+np.cos(phi)*((y1-y2)/2)
 
-    #print("x_prim",x_prim)
-    #print("y_prim",y_prim)
-
     c_scale_numerator=(rx*rx*ry*ry)-(rx*rx*y_prim*y_prim)-(ry*ry*x_prim*x_prim)
     c_scale_denumerator=rx*rx*y_prim*y_prim+ry*ry*x_prim*x_prim
-    #print("c_scale_numerator",c_scale_numerator)
-    #print("c_scale_denumerator",c_scale_denumerator)
-    c_scale=-np.sqrt(c_scale_numerator/c_scale_denumerator)
-    #print("c_scale",c_scale)
+
+    c_scale=sign1*np.sqrt(c_scale_numerator/c_scale_denumerator)
     cx_prim=c_scale*(rx*y_prim/ry)
     cy_prim=c_scale*(-ry*x_prim/rx)
-    #print("cx_prim",cx_prim)
-    #print("cy_prim",cy_prim)
 
     cx=np.cos(phi)*cx_prim-np.sin(phi)*cy_prim+((x1+x2)/2)
     cy=np.sin(phi)*cx_prim+np.cos(phi)*cy_prim+((y1+y2)/2)
 
-    theta_numerator=(x_prim-cx_prim)/rx
-    theta_denumerator=np.sqrt(1)*np.sqrt(np.power((x_prim-cx_prim)/rx,2)+np.power((y_prim-cy_prim)/ry,2))
-    theta=np.arccos(theta_numerator/theta_denumerator)
+    #Calculae theta and delta theta (angle of arc)
+    ux_theta=1
+    uy_theta=0
+    vx_theta=(x_prim-cx_prim)/rx
+    vy_theta=(y_prim-cy_prim)/ry
+    #Sign of theta
+    sign_theta=ux_theta*vy_theta-uy_theta*vx_theta
+    if(sign_theta>=0):
+        sign2=1
+    else:
+        sign2=-1
 
-    delta_theta_numerator=((x_prim-cx_prim)/rx)*((-x_prim-cx_prim)/rx)+((y_prim-cy_prim)/ry)*((-y_prim-cy_prim)/ry)
-    delta_theta_denumerator=np.sqrt(np.power((x_prim-cx_prim)/rx,2)+np.power((y_prim-cy_prim)/ry,2))*np.sqrt(np.power((-x_prim-cx_prim)/rx,2)+np.power((y_prim-cy_prim)/ry,2))
-    delta_theta=np.arccos(delta_theta_numerator/delta_theta_denumerator)%360
-    #delta_theta=delta_theta*0.01745329252
+    theta_numerator=ux_theta*vx_theta+uy_theta*vy_theta
+    theta_denumerator=np.sqrt(np.power(ux_theta,2)+np.power(uy_theta,2))*np.sqrt(np.power(vx_theta,2)+np.power(vy_theta,2))
+    theta=sign2*np.arccos(theta_numerator/theta_denumerator)
 
-    #print("cx,cy",cx,cy)
-    #print("theta",theta)
-    #print("delta_theta",delta_theta)
+    ux_delta_theta=(x_prim-cx_prim)/rx
+    uy_delta_theta=(y_prim-cy_prim)/ry
+    vx_delta_theta=(-x_prim-cx_prim)/rx
+    vy_delta_theta=(-y_prim-cy_prim)/ry
+    #Sign of theta
+    sign_delta_theta=ux_delta_theta*vy_delta_theta-uy_delta_theta*vx_delta_theta
+    if(sign_delta_theta>=0):
+        sign3=1
+    else:
+        sign3=-1
+    
+    delta_theta_numerator=ux_delta_theta*vx_delta_theta+uy_delta_theta*vy_delta_theta
+    delta_theta_denumerator=np.sqrt(np.power(ux_delta_theta,2)+np.power(uy_delta_theta,2))*np.sqrt(np.power(vx_delta_theta,2)+np.power(vy_delta_theta,2))
+    delta_theta=sign3*np.arccos(delta_theta_numerator/delta_theta_denumerator)
+    delta_theta=delta_theta%(2*np.pi)
 
-    size=round(delta_theta/steps) #size of list
+    if(fs==0):
+        if(delta_theta>0):
+            delta_theta=delta_theta-2*np.pi
+    else:
+        if(delta_theta<0):
+            delta_theta=delta_theta+2*np.pi
+
+    size=round(abs(delta_theta)/steps)+1 #size of list
     #list of angles values to thetha angle in radians
     xypi=np.empty(size)
-    for i in range(size):
-        xypi[i]=i*steps+theta
+    if(delta_theta>=0):
+        for i in range(size):
+            xypi[i]=theta+i*steps
+    else:
+        for i in range(size):
+            xypi[i]=theta-i*steps
 
     xpoints=np.empty(size)
     ypoints=np.empty(size)
     for i in range (size):
         xpoints[i]=np.cos(phi)*rx*np.cos(xypi[i])-np.sin(phi)*ry*np.sin(xypi[i])+cx
         ypoints[i]=np.sin(phi)*rx*np.cos(xypi[i])+np.cos(phi)*ry*np.sin(xypi[i])+cy
-    return(xpoints,ypoints)
-    
+    return(xpoints,-ypoints)
+def svg_bezier(pcs_x,pcs_y,pce_x,pce_y,x2,y2,x1,y1):
+    #Const
+    steps=0.03 #resolutino of angle
+    size=round(1/steps)+1
+    xpoints=np.empty(size)
+    ypoints=np.empty(size)
+    #for i in range (size):
+    for i in range(size):
+        t=i/size
+        xpoints[i]=np.power((1-t),3)*x1+3*t*np.power((1-t),2)*pcs_x+3*(1-t)*t*t*pce_x+t*t*t*x2
+        ypoints[i]=np.power((1-t),3)*y1+3*t*np.power((1-t),2)*pcs_y+3*(1-t)*t*t*pce_y+t*t*t*y2
+    print("xpoints",xpoints)
+    print("ypoints",ypoints)
+    return(xpoints,-ypoints)
+
 def shape_alignment(xpoints,ypoints):
     #value of shift in x and y (shifting to 0)
     shift_x=min(xpoints)
