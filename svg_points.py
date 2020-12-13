@@ -1,8 +1,8 @@
 import numpy as np
-
+steps=0.05 #resolutino of angle
 def svg_elipse_arc(rx,ry,phi,fa,fs,x2,y2,x1,y1):
     #Const
-    steps=0.03 #resolutino of angle
+    
     #sign using during center point calculation
     if(fa==fs):
         sign1=-1
@@ -78,9 +78,9 @@ def svg_elipse_arc(rx,ry,phi,fa,fs,x2,y2,x1,y1):
         xpoints[i]=np.cos(phi)*rx*np.cos(xypi[i])-np.sin(phi)*ry*np.sin(xypi[i])+cx
         ypoints[i]=np.sin(phi)*rx*np.cos(xypi[i])+np.cos(phi)*ry*np.sin(xypi[i])+cy
     return(xpoints,-ypoints)
+
 def svg_bezier(pcs_x,pcs_y,pce_x,pce_y,x2,y2,x1,y1):
     #Const
-    steps=0.03 #resolutino of angle
     size=round(1/steps)+1
     xpoints=np.empty(size)
     ypoints=np.empty(size)
@@ -89,8 +89,6 @@ def svg_bezier(pcs_x,pcs_y,pce_x,pce_y,x2,y2,x1,y1):
         t=i/size
         xpoints[i]=np.power((1-t),3)*x1+3*t*np.power((1-t),2)*pcs_x+3*(1-t)*t*t*pce_x+t*t*t*x2
         ypoints[i]=np.power((1-t),3)*y1+3*t*np.power((1-t),2)*pcs_y+3*(1-t)*t*t*pce_y+t*t*t*y2
-    print("xpoints",xpoints)
-    print("ypoints",ypoints)
     return(xpoints,-ypoints)
 
 def shape_alignment(xpoints,ypoints):
@@ -107,3 +105,36 @@ def shape_alignment(xpoints,ypoints):
     xpoints=xpoints*scale
     ypoints=ypoints*scale
     return(xpoints,ypoints)
+
+def file_read(f_name):
+    text_list=[]
+    i=0
+    start_temp=np.empty(2)
+    resultxy=np.array([[],[]])
+
+    with open(f_name,"r") as f:
+        for line in f:
+            text_list.extend(line.split())
+    
+    while i<len(text_list):
+        if(text_list[i]=='M'):
+            start_temp=[float(text_list[i+1]),float(text_list[i+2])]
+            i=i+3
+        elif(text_list[i]=="z"):
+            i=i+1
+        elif(text_list[i]=="L"):
+            result=np.array([[float(text_list[i+1])],[-float(text_list[i+2])]])
+            resultxy=np.concatenate((resultxy,result),axis=1)
+            start_temp=[float(text_list[i+1]),float(text_list[i+2])]
+            i=i+3
+        elif(text_list[i]=="A"):
+            result=svg_elipse_arc(float(text_list[i+1]),float(text_list[i+2]),float(text_list[i+3]),float(text_list[i+4]),float(text_list[i+5]),float(text_list[i+6]),float(text_list[i+7]),start_temp[0],start_temp[1])
+            resultxy=np.concatenate((resultxy,result),axis=1)
+            start_temp=[float(text_list[i+6]),float(text_list[i+7])]
+            i=i+8
+        else:
+            result=svg_bezier(float(text_list[i+1]),float(text_list[i+2]),float(text_list[i+3]),float(text_list[i+4]),float(text_list[i+5]),float(text_list[i+6]),start_temp[0],start_temp[1])
+            resultxy=np.concatenate((resultxy,result),axis=1)
+            start_temp=[float(text_list[i+5]),float(text_list[i+6])]
+            i=i+7
+    return(resultxy)

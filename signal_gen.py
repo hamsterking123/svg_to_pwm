@@ -51,6 +51,7 @@ def dac_gen(freq,delay,prec): #Simple DAC signal generation (frequency, delay fo
         else:
             z=z+1
             k=0
+    
     #Convert precents into voltage (D*V, where: D dutycycle of PWM signal in precents and V is max voltage, here 5V)
     for i in range(int(num_sample)):
         dac[i]=prec_sampl[i]*5
@@ -66,4 +67,5 @@ def wav_file(x_channel,y_channel,samplingFrequency):
 
     # Produce an audio file that contains stereo sound
     wavfile.write('stereoAudio.wav', samplingFrequency, tone_y_stereo)
+    wavfile.write('stereoAudioread.wav', samplingFrequency, tone_y_stereo/7)
     wavfile.write('monoAudio.wav', samplingFrequency, x_channel)
